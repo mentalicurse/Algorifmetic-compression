@@ -21,6 +21,16 @@ void out_bit(unsigned int bit, unsigned int* bit_length, unsigned char* wbit, FI
     }
 }
 
+void FollowBit(unsigned int bit, unsigned int* followbit, unsigned int* bit_length, unsigned char* wbit, FILE* output)
+{
+    out_bit(bit, bit_length, wbit, output);
+    
+    for (; *followbit > 0; (*followbit)--)
+    {
+        out_bit(!bit, bit_length, wbit, output);
+    }
+}
+
 int SimvolIndex(char c, vector<pair<char, unsigned int>> vec)
 {
     for (int i = 0; i < vec.size(); i++)
@@ -81,7 +91,54 @@ unsigned short * ABC = new unsigned short[256];
     }
     );
   
-  int j = SimvolIndex(c, vec);
+    unsigned int* table = new unsigned int[vec.size() + 2];
+    table[0] = 0;
+    table[1] = 1;
+    for (int i = 0; i < vec.size(); i++)
+    {
+        unsigned int b = vec[i].second;
+        for (int j = 0; j < i; j++)
+        {
+            b += vec[j].second;
+        }
+        table[i+2] = b;
+    }
+
+    if (table[vec.size()] > (1 << ((amount_bits - 2)) - 1))
+    {
+        cout<<"Слишком много.Ошибка!";
+        exit(0);
+    }
+
+    unsigned int min_v = 0;
+    unsigned int max_v = ((static_cast<unsigned int> (1) << amount_bits) - 1);
+    unsigned int followbit = 0;
+    unsigned int bit_length = 8;
+    unsigned char wbit = 0;
+    unsigned int quart1 = (max_v + 1) / 4;
+    unsigned int quart2 = quart1 * 2;
+    unsigned int quart3 = quart1 * 3;
+    unsigned int del = table[vec.size()+1];
+    unsigned int dif = max_v - min_v + 1;
+
+    int j = 0;
+
+    input = fopen("input.txt", "rb");
+    FILE* output = fopen("encoded.txt", "wb +");
+
+    char count_simvol = vec.size();
+    fputc(count_simvol, output);
+
+
+    for (int i = 0; i < 256; i++)
+    {
+        if (ABC[i] != 0) 
+        {
+            fputc(static_cast<char>(i), output);
+            fwrite(reinterpret_cast<const char*>(&ABC[i]), sizeof(unsigned short), 1, output);
+        }
+    }
+    
 }
 
 int main(){
