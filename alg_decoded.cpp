@@ -91,7 +91,45 @@ void DecodingAlg(){
     unsigned short amount = 0;
     int k = 0;
   
-  k = in_bit(&rbit, &bit_length, input, &fbit);
+ unsigned int* table = new unsigned int[vec.size() + 2];
+    table[0] = 0;
+    table[1] = 1;
+    for (int i = 0; i < vec.size(); i++)
+    {
+        unsigned int b = vec[i].second;
+        for (int j = 0; j < i; j++)
+        {
+            b += vec[j].second;
+        }
+        table[i+2] = b;
+    }
+
+    if (table[vec.size()] > (1 << ((amount_bits - 2)) - 1))
+    {
+        cout<<"Слишком много.Ошибка!";
+        exit(0);
+    }
+
+    unsigned int bit_length = 0;
+    unsigned char rbit = 0;
+    unsigned int fbit = 0;
+    unsigned int amount = 0;
+    unsigned int del = table[vec.size()+1];
+    unsigned int min_v = 0;
+    unsigned int max_v = ((static_cast<unsigned int> (1) << amount_bits) - 1);
+    unsigned int quart1 = (max_v + 1) / 4;
+    unsigned int quart2 = quart1 * 2;
+    unsigned int quart3 = quart1 * 3;
+    FILE* output = fopen("output.txt", "wb +");
+    int k = 0;
+
+  
+    for (int i = 1; i <= 16; i++)
+    {
+        k = in_bit(&rbit, &bit_length, input, &fbit);
+        amount = 2 * amount + k;
+    }
+    unsigned int dif = max_v - min_v + 1;
 }
 
 int main(){
