@@ -5,11 +5,11 @@
 #include <vector>
 #include <algorithm>
 
-#define code_value_bits 16
+#define amount_bits 16
 
 using namespace std;
 
-void out_bit(unsigned int bit, unsigned int* bit_length, unsigned char* wbit, FILE* output)
+void out_bit(unsigned int bit, unsigned int* bit_length, unsigned char* wbit, FILE* output)  //запись бита
 {
     (*wbit) >>= 1;
     if (bit) (*wbit) |= 128;
@@ -20,7 +20,7 @@ void out_bit(unsigned int bit, unsigned int* bit_length, unsigned char* wbit, FI
         (*bit_length) = 8;
     }
 }
-
+//записываем последовательность битов
 void FollowBit(unsigned int bit, unsigned int* followbit, unsigned int* bit_length, unsigned char* wbit, FILE* output)
 {
     out_bit(bit, bit_length, wbit, output);
@@ -31,7 +31,7 @@ void FollowBit(unsigned int bit, unsigned int* followbit, unsigned int* bit_leng
     }
 }
 
-int SimvolIndex(char c, vector<pair<char, unsigned int>> vec)
+int SimvolIndex(char c, vector<pair<char, unsigned int>> vec) //нахождение индекса символа
 {
     for (int i = 0; i < vec.size(); i++)
     {
@@ -44,14 +44,14 @@ int SimvolIndex(char c, vector<pair<char, unsigned int>> vec)
     return -1;
 }
 
-void CodingAlg(){
+void CodingAlg(){       //функция кодирования
 unsigned short * ABC = new unsigned short[256];
-    for (int i = 0; i < 256; i++)
+    for (int i = 0; i < 256; i++)   //массив символов
     {
         ABC[i] = 0;
     }
 
-    FILE* input = fopen("input.txt", "rb");
+    FILE* input = fopen("input.txt", "rb");    
     if (input == nullptr)
     {
         cout<<"Файд не открывается.Исправьте ошибку!";
@@ -65,13 +65,13 @@ unsigned short * ABC = new unsigned short[256];
         c = fgetc(input);
         if (!feof(input))
         {
-            ABC[c]++;
+            ABC[c]++;   //считываем символ и его частоту
         }
     }
 
     fclose(input);
   
-  vector<pair<char, unsigned int>> vec;
+  vector<pair<char, unsigned int>> vec; //заносим это в вектор
     for (int i=0; i < 256; i++)
     {
         if (ABC[i] != 0)
@@ -80,7 +80,7 @@ unsigned short * ABC = new unsigned short[256];
         }
     }
 
-    sort (vec.begin(), vec.end(), [](const pair<char, unsigned int> &l, const pair<char, unsigned int> &r)
+    sort (vec.begin(), vec.end(), [](const pair<char, unsigned int> &l, const pair<char, unsigned int> &r) //сортируем
     {
         if (l.second != r.second)
         {
@@ -91,7 +91,7 @@ unsigned short * ABC = new unsigned short[256];
     }
     );
   
-    unsigned int* table = new unsigned int[vec.size() + 2];
+    unsigned int* table = new unsigned int[vec.size() + 2]; //составляем таблицу
     table[0] = 0;
     table[1] = 1;
     for (int i = 0; i < vec.size(); i++)
@@ -127,21 +127,111 @@ unsigned short * ABC = new unsigned short[256];
     FILE* output = fopen("encoded.txt", "wb +");
 
     char count_simvol = vec.size();
-    fputc(count_simvol, output);
+    fputc(count_simvol, output); //записываем в файл количество символов
 
 
     for (int i = 0; i < 256; i++)
     {
         if (ABC[i] != 0) 
         {
-            fputc(static_cast<char>(i), output);
-            fwrite(reinterpret_cast<const char*>(&ABC[i]), sizeof(unsigned short), 1, output);
+            fputc(static_cast<char>(i), output);    //записываем в файл символ
+            fwrite(reinterpret_cast<const char*>(&ABC[i]), sizeof(unsigned short), 1, output);//его частоту
         }
     }
     
+    while (!feof(input))
+    {  
+        c = fgetc(input);
+
+        if (!feof(input))
+        {
+            j = SimvolIndex(c, vec);        //находим индекс символа
+
+            //сужаем область относительно данного символа
+            max_v = min_v +  table[j] * dif / del - 1;
+            min_v = min_v + table[j - 1] * dif  / del;
+
+            for (int i = 1; i < 16; i++) //записываем биты в цикле
+            {   
+                if (max_v < quart2)
+                {
+                    FollowBit(0, &followbit, &bit_length, &wbit, output);
+                }
+                else if (min_v >= quart2)
+                {
+                    FollowBit(1, &followbit, &bit_length, &wbit, output);
+                    min_v -= quart2;
+                    max_v -= quart2;
+                }
+                else if ((min_v >= quart1) && (max_v < quart3))
+                {
+                    followbit++;
+                    min_v -= quart1;
+                    max_v -= quart1;
+                }
+                else
+                {
+                    break;
+                }
+
+                min_v += min_v;
+                max_v += max_v + 1;
+            }
+        }
+        else
+        {  
+            max_v = min_v +  table[1] * dif / del - 1;
+            min_v = min_v + table[0] * dif  / del;
+
+            for (int i=1;i<=16;i++)
+            {
+                if (max_v < quart2)
+                {
+                    FollowBit(0, &followbit, &bit_length, &wbit, output);
+                }
+                else if (max_v >= quart2)
+                {
+                    FollowBit(1, &followbit, &bit_length, &wbit, output);
+                    min_v -= quart2;
+                    max_v -= quart2;
+                }
+                else if ((min_v >= quart1) && (max_v < quart3))
+                {
+                    followbit++;
+                    min_v -= quart1;
+                    max_v -= quart1;
+                }
+                else
+                {
+                    break;
+                }
+
+                min_v += min_v;
+                max_v += max_v + 1;
+            }
+
+            followbit+=1;
+
+            if (min_v < quart1)
+            {
+                FollowBit(0, &followbit, &bit_length, &wbit, output);
+            }
+            else
+            {
+                FollowBit(1, &followbit, &bit_length, &wbit, output);
+            }
+
+            wbit >>= bit_length;
+            fputc(wbit, output);
+        }
+        dif = max_v - min_v + 1;
+    }
+
+    fclose(input); //закрытие
+    fclose(output);//файлов
 }
 
 int main(){
-CodingAlg();
+CodingAlg();//вызов функции кодирования
 return 0;
 }
